@@ -12,9 +12,9 @@ const getSuppliers = async (req, res) => {
 // @route   POST /api/suppliers
 // @access  Private/Admin
 const createSupplier = async (req, res) => {
-  const { name, phone, email, address } = req.body;
+  const { name, phone, email, address, contactPerson } = req.body;
 
-  const supplier = await Supplier.create({ name, phone, email, address });
+  const supplier = await Supplier.create({ name, phone, email, address, contactPerson });
   res.status(201).json(supplier);
 };
 
@@ -29,6 +29,7 @@ const updateSupplier = async (req, res) => {
     supplier.phone = req.body.phone || supplier.phone;
     supplier.email = req.body.email || supplier.email;
     supplier.address = req.body.address || supplier.address;
+    supplier.contactPerson = req.body.contactPerson || supplier.contactPerson;
 
     const updatedSupplier = await supplier.save();
     res.json(updatedSupplier);

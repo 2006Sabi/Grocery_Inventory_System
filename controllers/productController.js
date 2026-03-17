@@ -78,6 +78,11 @@ const updateProduct = async (req, res) => {
     product.supplierId = req.body.supplierId || product.supplierId;
 
     const updatedProduct = await product.save();
+    
+    // Check stock levels for notifications and reorders
+    const { checkStockLevels } = require('../utils/inventoryService');
+    await checkStockLevels(updatedProduct);
+
     res.json(updatedProduct);
   } else {
     res.status(404).json({ message: 'Product not found' });
@@ -122,9 +127,6 @@ const getProductByBarcode = async (req, res) => {
   }
 };
 
-// @desc    Get products by expiry priority
-// @route   GET /api/products/expiry-priority
-// @access  Private
 const getProductsByExpiryPriority = async (req, res) => {
   const products = await Product.find({}).populate('categoryId', 'name');
   
@@ -136,6 +138,31 @@ const getProductsByExpiryPriority = async (req, res) => {
   res.json(prioritized);
 };
 
+// @desc    Toggle auto-reorder status
+// @route   PUT /api/products/:id/toggle-reorder
+// @access  Private/Admin
+const toggleAutoReorder = async (req, res) => {
+  const product = await Product.findById(req.params.id);
+  if (product) {
+    product.autoReorder = !product.autoReorder;
+    const updatedProduct = await product.save();
+    res.json(updatedProduct);
+  } else {
+    res.status(404).json({ message: 'Product not found' });
+  }
+};
+
+// @desc    Get products with auto-reorder OFF and low stock
+// @route   GET /api/products/manual-reorder
+// @access  Private/Admin
+const getManualReorderProducts = async (req, res) => {
+  const products = await Product.find({
+    autoReorder: false,
+    $expr: { $lte: ['$stock', '$threshold'] }
+  }).populate('categoryId', 'name').populate('supplierId', 'name');
+  res.json(products);
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -144,5 +171,7 @@ module.exports = {
   deleteProduct,
   getLowStockProducts,
   getProductByBarcode,
-  getProductsByExpiryPriority
+  getProductsByExpiryPriority,
+  toggleAutoReorder,
+  getManualReorderProducts
 };

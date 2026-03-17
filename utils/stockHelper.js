@@ -13,9 +13,15 @@ const updateStock = async (productId, quantity, action) => {
     product.stock -= quantity;
   } else if (action === 'UPDATE') {
     product.stock = quantity;
+  } else if (action === 'ADJUSTMENT') {
+    product.stock += quantity;
   }
 
   await product.save();
+
+  // Check stock levels for notifications and reorders
+  const { checkStockLevels } = require('./inventoryService');
+  await checkStockLevels(product);
 
   // Log the action
   await InventoryLog.create({

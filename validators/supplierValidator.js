@@ -5,6 +5,7 @@ const supplierSchema = Joi.object({
   phone: Joi.string().required(),
   email: Joi.string().email().required(),
   address: Joi.string().required(),
+  contactPerson: Joi.string().allow('', null),
 });
 
 module.exports = { supplierSchema };

@@ -5,19 +5,31 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middlewares/errorMiddleware');
 
-// Load env vars
-dotenv.config();
+const path = require('path');
+// Load env vars MUST be first
+const result = dotenv.config({ path: path.resolve(__dirname, '.env') });
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+} else {
+  console.log('.env file loaded successfully from:', path.resolve(__dirname, '.env'));
+}
 
 // Connect to database
 connectDB();
 
 const app = express();
 
+// Enable CORS - MUST be before routes and body parser
+app.use(cors({
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // Body parser
 app.use(express.json());
-
-// Enable CORS
-app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -33,6 +45,9 @@ const billingRoutes = require('./routes/billingRoutes');
 const reorderRoutes = require('./routes/reorderRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
+const userRoutes = require('./routes/userRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Mount routers
 app.use('/api/auth', authRoutes);
@@ -43,9 +58,13 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/reorders', reorderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {
+  console.log('Root hit');
   res.send('API is running...');
 });
 
@@ -55,5 +74,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });

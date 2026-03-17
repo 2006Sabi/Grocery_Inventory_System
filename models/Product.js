@@ -38,6 +38,13 @@ const productSchema = new mongoose.Schema({
     ref: 'Supplier',
     required: true,
   },
+  autoReorder: {
+    type: Boolean,
+    default: false,
+  },
+  lastAlertSent: {
+    type: Date,
+  },
 }, {
   timestamps: true,
 });

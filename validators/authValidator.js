@@ -4,8 +4,7 @@ const registerSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
-  role: Joi.string().valid('ADMIN', 'STAFF'),
-  storeId: Joi.string().required(),
+  storeName: Joi.string().required(),
 });
 
 const loginSchema = Joi.object({
@@ -13,4 +12,12 @@ const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
-module.exports = { registerSchema, loginSchema };
+const staffSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+  permissions: Joi.array().items(Joi.string()),
+});
+
+module.exports = { registerSchema, loginSchema, staffSchema };
+

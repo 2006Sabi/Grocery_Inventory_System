@@ -1,11 +1,13 @@
 const User = require('../models/User');
+const Store = require('../models/Store');
 const generateToken = require('../utils/generateToken');
+const mongoose = require('mongoose');
 
-// @desc    Register a new user
+// @desc    Register a new user (ADMIN & Store Owner)
 // @route   POST /api/auth/register
-// @access  Public (or Admin only depending on requirement, here Public for initial setup)
+// @access  Public
 const registerUser = async (req, res) => {
-  const { name, email, password, role, storeId } = req.body;
+  const { name, email, password, storeName } = req.body;
 
   const userExists = await User.findOne({ email });
 
@@ -13,25 +15,40 @@ const registerUser = async (req, res) => {
     return res.status(400).json({ message: 'User already exists' });
   }
 
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role,
-    storeId,
-  });
+  const userId = new mongoose.Types.ObjectId();
+  const storeId = new mongoose.Types.ObjectId();
 
-  if (user) {
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      storeId: user.storeId,
-      token: generateToken(user._id),
+  try {
+    const store = await Store.create({
+      _id: storeId,
+      name: storeName,
+      ownerId: userId,
     });
-  } else {
-    res.status(400).json({ message: 'Invalid user data' });
+
+    const user = await User.create({
+      _id: userId,
+      name,
+      email,
+      password,
+      role: 'ADMIN',
+      storeId: storeId.toString(),
+    });
+
+    if (user && store) {
+      res.status(201).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        storeId: user.storeId,
+        storeName: store.name,
+        token: generateToken(user._id),
+      });
+    } else {
+      res.status(400).json({ message: 'Invalid user or store data' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -44,12 +61,16 @@ const loginUser = async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
+    // Also fetch store name
+    const store = await Store.findById(user.storeId);
+
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       storeId: user.storeId,
+      storeName: store ? store.name : 'Unknown Store',
       token: generateToken(user._id),
     });
   } else {
