@@ -91,11 +91,22 @@ const checkStockLevels = async (product) => {
     if (autoReorder) {
       const pendingReorder = await Reorder.findOne({ productId: _id, status: 'PENDING' });
       if (!pendingReorder) {
+        // Fetch product and supplier names for the Reorder record
+        const Product = require('../models/Product');
+        const Supplier = require('../models/Supplier');
+        
+        const fullProduct = await Product.findById(_id).populate('supplierId');
+        const supplierName = fullProduct.supplierId ? fullProduct.supplierId.name : 'Unknown Supplier';
+
+        console.log(`Creating automatic reorder for ${name}`);
         await Reorder.create({
           productId: _id,
+          productName: name,
           supplierId,
+          supplierName: supplierName,
           suggestedQuantity: threshold * 2,
           status: 'PENDING',
+          autoReorder: true
         });
       }
     } else {

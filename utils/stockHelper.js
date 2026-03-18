@@ -1,10 +1,12 @@
 const InventoryLog = require('../models/InventoryLog');
 
-const updateStock = async (productId, quantity, action) => {
+const updateStock = async (productId, quantity, action, performedBy = null, note = '') => {
   const Product = require('../models/Product'); // Avoid circular dependency
   
   const product = await Product.findById(productId);
   if (!product) throw new Error('Product not found');
+
+  const previousStock = product.stock;
 
   if (action === 'ADD') {
     product.stock += quantity;
@@ -17,17 +19,23 @@ const updateStock = async (productId, quantity, action) => {
     product.stock += quantity;
   }
 
+  const newStock = product.stock;
   await product.save();
 
   // Check stock levels for notifications and reorders
   const { checkStockLevels } = require('./inventoryService');
   await checkStockLevels(product);
 
-  // Log the action
+  // Log the action with details
   await InventoryLog.create({
     productId,
+    productName: product.name,
     action,
     quantity,
+    previousStock,
+    newStock,
+    performedBy,
+    note: note || (action === 'SALE' ? 'Sold via billing' : `Manual ${action.toLowerCase()}`),
   });
 
   return product;
