@@ -10,6 +10,14 @@ const storeSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  gstNumber: {
+    type: String,
+    default: '',
+  },
+  address: {
+    type: String,
+    default: '',
+  },
 }, {
   timestamps: true,
 });

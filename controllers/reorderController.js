@@ -1,6 +1,8 @@
 const Reorder = require('../models/Reorder');
 const Product = require('../models/Product');
 const InventoryLog = require('../models/InventoryLog');
+const Supplier = require('../models/Supplier');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Get all reorders
 // @route   GET /api/reorders
@@ -47,6 +49,26 @@ const createReorder = async (req, res) => {
       autoReorder,
       status: status || 'PENDING'
     });
+
+    // Send order email to supplier
+    if (reorder) {
+      const supplier = await Supplier.findOne({ name: supplierName });
+      if (supplier && supplier.email) {
+        await sendEmail({
+          email: supplier.email,
+          subject: 'New Product Order Request',
+          message: `Hello ${supplierName},
+
+A new order has been placed.
+
+Product Details:
+- Product Name: ${productName}
+- Quantity: ${suggestedQuantity}
+
+Please process the order and arrange delivery.`
+        });
+      }
+    }
 
     res.status(201).json(reorder);
   } catch (error) {

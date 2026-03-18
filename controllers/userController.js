@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Store = require('../models/Store');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Create a new staff user (ADMIN ONLY)
 // @route   POST /api/users/create-staff
@@ -23,6 +25,21 @@ const createStaff = async (req, res) => {
   });
 
   if (staff) {
+    // Send welcome email
+    await sendEmail({
+      email: staff.email,
+      subject: 'Welcome to Inventory System',
+      message: `Hello ${staff.name},
+
+Your account has been created.
+
+Login Details:
+Email: ${staff.email}
+Password: ${password} (For demo purposes)
+
+You can now login and access the system based on your assigned permissions.`
+    });
+
     res.status(201).json({
       _id: staff._id,
       name: staff.name,
@@ -43,4 +60,51 @@ const getStaff = async (req, res) => {
   res.json(staff);
 };
 
-module.exports = { createStaff, getStaff };
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+const getProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (user) {
+    const store = await Store.findById(user.storeId);
+    res.json({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone || '',
+      profileImage: user.profileImage || '',
+      storeName: store ? store.name : 'Unknown Store',
+    });
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
+    user.profileImage = req.body.profileImage !== undefined ? req.body.profileImage : user.profileImage;
+
+    const updatedUser = await user.save();
+    const store = await Store.findById(updatedUser.storeId);
+
+    res.json({
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      phone: updatedUser.phone || '',
+      profileImage: updatedUser.profileImage || '',
+      storeName: store ? store.name : 'Unknown Store',
+    });
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+};
+
+module.exports = { createStaff, getStaff, getProfile, updateProfile };

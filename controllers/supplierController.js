@@ -1,4 +1,5 @@
 const Supplier = require('../models/Supplier');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Get all suppliers
 // @route   GET /api/suppliers
@@ -15,6 +16,21 @@ const createSupplier = async (req, res) => {
   const { name, phone, email, address, contactPerson } = req.body;
 
   const supplier = await Supplier.create({ name, phone, email, address, contactPerson });
+
+  // Send registration email
+  await sendEmail({
+    email: supplier.email,
+    subject: 'Supplier Access Granted',
+    message: `Hello ${supplier.name},
+
+You have been registered as a supplier.
+
+You will receive:
+- Reorder requests
+- Ordered product details
+- Delivery details`
+  });
+
   res.status(201).json(supplier);
 };
 

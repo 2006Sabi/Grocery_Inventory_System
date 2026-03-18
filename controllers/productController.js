@@ -168,6 +168,32 @@ const getManualReorderProducts = async (req, res) => {
   res.json(products);
 };
 
+// @desc    Update only product stock
+// @route   PUT /api/products/:id/update-stock
+// @access  Private
+const updateStockOnly = async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (product) {
+    product.stock = req.body.stock !== undefined ? req.body.stock : product.stock;
+    
+    // Save to trigger notifications/reorders logic in inventoryService
+    const updatedProduct = await product.save();
+    
+    try {
+      const { checkStockLevels } = require('../utils/inventoryService');
+      await checkStockLevels(updatedProduct);
+      console.log(`Stock updated for ${product.name}. Current stock: ${product.stock}`);
+    } catch (error) {
+      console.error('Inventory check failed:', error.message);
+    }
+
+    res.json(updatedProduct);
+  } else {
+    res.status(404).json({ message: 'Product not found' });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -178,5 +204,6 @@ module.exports = {
   getProductByBarcode,
   getProductsByExpiryPriority,
   toggleAutoReorder,
-  getManualReorderProducts
+  getManualReorderProducts,
+  updateStockOnly
 };

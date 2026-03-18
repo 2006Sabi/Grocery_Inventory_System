@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  const { name, email, password, storeName } = req.body;
+  const { name, email, phone, password, storeName } = req.body;
 
   const userExists = await User.findOne({ email });
 
@@ -29,6 +29,7 @@ const registerUser = async (req, res) => {
       _id: userId,
       name,
       email,
+      phone: phone || '',
       password,
       role: 'ADMIN',
       storeId: storeId.toString(),
@@ -39,6 +40,7 @@ const registerUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone || '',
         role: user.role,
         storeId: user.storeId,
         storeName: store.name,
@@ -68,6 +70,7 @@ const loginUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone || '',
       role: user.role,
       storeId: user.storeId,
       storeName: store ? store.name : 'Unknown Store',
@@ -78,4 +81,58 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateUserProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
+
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+    const store = await Store.findById(updatedUser.storeId);
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      phone: updatedUser.phone || '',
+      role: updatedUser.role,
+      storeId: updatedUser.storeId,
+      storeName: store ? store.name : 'Unknown Store',
+      token: generateToken(updatedUser._id),
+    });
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+};
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+const getProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (user) {
+    const store = await Store.findById(user.storeId);
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      role: user.role,
+      storeId: user.storeId,
+      storeName: store ? store.name : 'Unknown Store',
+    });
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+};
+
+module.exports = { registerUser, loginUser, updateUserProfile, getProfile };

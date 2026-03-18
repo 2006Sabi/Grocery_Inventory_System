@@ -10,7 +10,8 @@ const {
   getProductByBarcode,
   getProductsByExpiryPriority,
   toggleAutoReorder,
-  getManualReorderProducts
+  getManualReorderProducts,
+  updateStockOnly
 } = require('../controllers/productController');
 
 const { protect } = require('../middlewares/authMiddleware');
@@ -24,6 +25,7 @@ router.get('/barcode/:barcode', protect, getProductByBarcode);
 router.get('/expiry-priority', protect, getProductsByExpiryPriority);
 router.get('/manual-reorder', protect, getManualReorderProducts);
 router.put('/:id/toggle-reorder', protect, authorize('ADMIN'), toggleAutoReorder);
+router.put('/:id/update-stock', protect, updateStockOnly);
 
 
 router.route('/')

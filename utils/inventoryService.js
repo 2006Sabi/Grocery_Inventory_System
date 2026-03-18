@@ -1,7 +1,7 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Reorder = require('../models/Reorder');
-const sendEmail = require('./emailService');
+const sendEmail = require('./sendEmail');
 
 const checkExpiryLevels = async (product) => {
   const { expiryDate, name, _id, storeId, stock } = product;
@@ -114,15 +114,15 @@ const checkStockLevels = async (product) => {
       if (!lastAlertSent || new Date(lastAlertSent).getTime() < today) {
         const admin = await User.findOne({ storeId, role: 'ADMIN' });
         if (admin) {
+          console.log("Triggering email for low stock for product:", name);
           const emailOptions = {
             email: admin.email,
-            subject: 'Stock Alert - Action Required',
+            subject: '⚠️ Stock Alert – Action Required',
             message: `Product Name: ${name}
 Current Stock: ${stock}
 Threshold: ${threshold}
-Suggested Reorder Quantity: ${threshold * 2}
 
-Message: Stock is low. Enable auto reorder or place order manually.`,
+Message: Stock is running low. Please enable Auto Reorder or manually place an order.`,
           };
 
           try {

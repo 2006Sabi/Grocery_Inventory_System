@@ -48,6 +48,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const userRoutes = require('./routes/userRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const storeRoutes = require('./routes/storeRoutes');
 
 // Mount routers
 app.use('/api/auth', authRoutes);
@@ -61,11 +62,30 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/store', storeRoutes);
 
 // Root route
 app.get('/', (req, res) => {
   console.log('Root hit');
   res.send('API is running...');
+});
+
+// Test email route
+app.get('/api/test-email', async (req, res) => {
+  const sendEmail = require('./utils/sendEmail');
+  console.log("Triggering test email...");
+  
+  const result = await sendEmail({
+    email: process.env.EMAIL_USER,
+    subject: 'Test Email - Inventory System',
+    message: 'This is a test email from the Smart Grocery Inventory System. If you receive this, NodeMailer is configured correctly!'
+  });
+
+  if (result) {
+    res.json({ message: 'Test email sent successfully!' });
+  } else {
+    res.status(500).json({ message: 'Failed to send test email. Check console for errors.' });
+  }
 });
 
 // Error handling middleware
