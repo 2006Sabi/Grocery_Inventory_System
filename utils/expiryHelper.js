@@ -6,7 +6,7 @@ const getExpiryPriority = (expiryDate) => {
   if (diffDays < 0) return 'EXPIRED';
   if (diffDays <= 3) return 'HIGH';
   if (diffDays <= 7) return 'MEDIUM';
-  return 'LOW';
+  return 'SAFE';
 };
 
 module.exports = { getExpiryPriority };

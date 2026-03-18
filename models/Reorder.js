@@ -1,27 +1,37 @@
 const mongoose = require('mongoose');
 
 const reorderSchema = new mongoose.Schema({
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true,
+  productName: {
+    type: String,
+    required: true
   },
-  supplierId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Supplier',
-    required: true,
+  supplierName: {
+    type: String,
+    required: true
   },
   suggestedQuantity: {
     type: Number,
-    required: true,
+    required: true
+  },
+  autoReorder: {
+    type: Boolean,
+    default: false
   },
   status: {
     type: String,
     enum: ['PENDING', 'ORDERED', 'COMPLETED'],
-    default: 'PENDING',
+    default: 'PENDING'
   },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product'
+  },
+  supplierId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Supplier'
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
 module.exports = mongoose.model('Reorder', reorderSchema);

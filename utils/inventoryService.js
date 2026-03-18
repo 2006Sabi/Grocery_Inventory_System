@@ -3,8 +3,52 @@ const User = require('../models/User');
 const Reorder = require('../models/Reorder');
 const sendEmail = require('./emailService');
 
+const checkExpiryLevels = async (product) => {
+  const { expiryDate, name, _id, storeId, stock } = product;
+  const today = new Date();
+  const diffTime = new Date(expiryDate) - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  let message = '';
+
+  if (diffDays < 0) {
+    message = `Product "${name}" has EXPIRED!`;
+  } else if (diffDays === 1) {
+    message = `Product "${name}" is about to expire in 1 day. Expiry Date: ${new Date(expiryDate).toLocaleDateString()}`;
+  } else if (diffDays <= 3) {
+    message = `Product "${name}" will expire within 3 days!`;
+  } else if (diffDays <= 7) {
+    message = `Product "${name}" will expire within 7 days.`;
+  }
+
+  if (message) {
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const existing = await Notification.findOne({
+      productId: _id,
+      type: 'EXPIRY',
+      message, // Same message check
+      createdAt: { $gte: todayStart }
+    });
+
+    if (!existing) {
+      const users = await User.find({ storeId, role: { $in: ['ADMIN', 'STAFF'] } });
+      const recipients = users.map(u => u._id);
+
+      await Notification.create({
+        message,
+        type: 'EXPIRY',
+        productId: _id,
+        productName: name,
+        stock,
+        expiryDate,
+        recipients,
+      });
+    }
+  }
+};
+
 const checkStockLevels = async (product) => {
-  const { stock, threshold, name, _id, autoReorder, lastAlertSent, supplierId } = product;
+  const { stock, threshold, name, _id, autoReorder, lastAlertSent, supplierId, storeId, expiryDate } = product;
 
   // 1. Trigger Notifications
   let type = '';
@@ -12,42 +56,52 @@ const checkStockLevels = async (product) => {
 
   if (stock === 0) {
     type = 'OUT_OF_STOCK';
-    message = `Product "${name}" is out of stock!`;
+    message = `Product "${name}" is OUT OF STOCK.`;
   } else if (stock <= threshold) {
     type = 'LOW_STOCK';
     message = `Product "${name}" is low on stock (${stock} remaining).`;
   }
 
   if (type) {
-    const users = await User.find({ storeId: product.storeId });
-    const recipients = users.map(u => u._id);
-
-    await Notification.create({
-      message,
-      type,
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const existing = await Notification.findOne({
       productId: _id,
-      recipients,
+      type,
+      createdAt: { $gte: todayStart }
     });
+
+    if (!existing) {
+      const users = await User.find({ storeId, role: { $in: ['ADMIN', 'STAFF'] } });
+      const recipients = users.map(u => u._id);
+
+      await Notification.create({
+        message,
+        type,
+        productId: _id,
+        productName: name,
+        stock,
+        expiryDate,
+        recipients,
+      });
+    }
   }
 
   // 2. Handle Reorder Logic
   if (stock <= threshold) {
     if (autoReorder) {
-      // Automatically create reorder if not already pending
       const pendingReorder = await Reorder.findOne({ productId: _id, status: 'PENDING' });
       if (!pendingReorder) {
         await Reorder.create({
           productId: _id,
           supplierId,
-          quantity: threshold * 2, // Simple logic for suggested quantity
+          suggestedQuantity: threshold * 2,
           status: 'PENDING',
         });
       }
     } else {
-      // Send email alert to admin if not sent today
       const today = new Date().setHours(0, 0, 0, 0);
       if (!lastAlertSent || new Date(lastAlertSent).getTime() < today) {
-        const admin = await User.findOne({ storeId: product.storeId, role: 'ADMIN' });
+        const admin = await User.findOne({ storeId, role: 'ADMIN' });
         if (admin) {
           const emailOptions = {
             email: admin.email,
@@ -71,6 +125,9 @@ Message: Stock is low. Enable auto reorder or place order manually.`,
       }
     }
   }
+  
+  // 3. Trigger Expiry Check
+  await checkExpiryLevels(product);
 };
 
-module.exports = { checkStockLevels };
+module.exports = { checkStockLevels, checkExpiryLevels };

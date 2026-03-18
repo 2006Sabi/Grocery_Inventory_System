@@ -80,8 +80,13 @@ const updateProduct = async (req, res) => {
     const updatedProduct = await product.save();
     
     // Check stock levels for notifications and reorders
-    const { checkStockLevels } = require('../utils/inventoryService');
-    await checkStockLevels(updatedProduct);
+    try {
+      const { checkStockLevels } = require('../utils/inventoryService');
+      await checkStockLevels(updatedProduct);
+    } catch (error) {
+      console.error('Notification/Reorder trigger failed:', error.message);
+      // We don't want to fail the product update if notification fails
+    }
 
     res.json(updatedProduct);
   } else {

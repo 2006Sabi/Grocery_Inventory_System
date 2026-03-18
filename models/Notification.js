@@ -7,12 +7,23 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['LOW_STOCK', 'EXPIRY', 'OUT_OF_STOCK'],
+    enum: ['INFO', 'LOW_STOCK', 'OUT_OF_STOCK', 'EXPIRY', 'MESSAGE'],
     required: true,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
+  },
+  productName: String,
+  stock: Number,
+  expiryDate: Date,
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
   recipients: [{
     type: mongoose.Schema.Types.ObjectId,
